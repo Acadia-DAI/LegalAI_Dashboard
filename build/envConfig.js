@@ -1,0 +1,4 @@
+window._env_ = {
+    REACT_APP_API_BASE_URL: "http://localhost:8000",
+    REACT_APP_UI_BASE_URL: "http://localhost:5173"
+  };
