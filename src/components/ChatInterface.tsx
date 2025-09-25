@@ -100,7 +100,7 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
           type: 'ai',
           content: res.ai_message,
           timestamp: new Date().toISOString(),
-          sources: res.citations
+          sources: documents.map(doc => doc.filename)//res.citations
         }
         setMessages(prev => [...prev, aiMessage])
       }
@@ -238,6 +238,15 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
                       <p className="text-xs text-muted-foreground mb-1">Sources:</p>
                       <div className="flex flex-col gap-2">
                         {message.sources.map((source, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-muted/10 rounded text-xs text-muted-foreground"
+                          >
+                            <FileText className="w-3 h-3" />
+                            {source}
+                          </span>
+                        ))}
+                        {/* {message.sources.map((source, index) => (
                           <div
                             key={index}
                             className="inline-flex flex-col bg-muted/10 rounded-lg p-2 text-xs text-muted-foreground"
@@ -260,7 +269,7 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
                               </button>
                             )}
                           </div>
-                        ))}
+                        ))} */}
                       </div>
                     </div>
                   )}
