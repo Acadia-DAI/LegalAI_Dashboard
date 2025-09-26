@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, MessageSquare, Sparkles, FileText, AlertCircle, PrinterIcon, Download, FileDown, Printer, FileDownIcon } from 'lucide-react'
+import { Send, Bot, User, MessageSquare, Sparkles, FileText, AlertCircle, PrinterIcon, Download, FileDown, Printer, FileDownIcon, ChevronDown, Settings } from 'lucide-react'
 import { Button } from './modern/Button'
 import { Card } from './modern/Card'
 import { Input } from './modern/Input'
@@ -8,20 +8,13 @@ import type { Case, Document, Message } from '../types/api-models'
 import { useApi } from '../hooks/UseApi'
 import { useAuthStore } from '../store/AuthStore'
 import { renderStyledMessages } from './PrintRenderer'
+import { set } from 'react-hook-form'
 
 
 interface ChatInterfaceProps {
   caseData: Case
   documents: Document[]
 }
-
-const mockResponses = [
-  "Based on the uploaded medical records, the patient's treatment history shows consistent care protocols were followed according to standard medical practices.",
-  "The insurance policy documents indicate coverage limitations that may apply to this specific type of claim. I've identified several relevant clauses that should be reviewed.",
-  "From the surgical reports, I can see that all pre-operative procedures were properly documented and patient consent was obtained according to required protocols.",
-  "The evidence suggests a strong foundation for your case. The documentation supports the timeline of events and shows proper medical decision-making processes.",
-  "I've analyzed the contract terms and found potential areas where the coverage interpretation may be disputed. This could be leveraged in negotiations."
-]
 
 const suggestedQuestions = [
   "What are the key strengths of this case?",
@@ -34,6 +27,7 @@ const suggestedQuestions = [
 
 export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
   const user = useAuthStore((state) => state.user)
+  // const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -46,21 +40,58 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [expandedSources, setExpandedSources] = useState<Record<number, boolean>>({});
+  // const [expandedSources, setExpandedSources] = useState<Record<number, boolean>>({});
   const [sessionId] = useState(() => {
     const timestamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0];
     return `${caseData.case_id}_${timestamp}`;
   });
-
+  const [selectedDocuments, setSelectedDocuments] = useState<Document[]>([])
+  const [isDocumentSelectorOpen, setIsDocumentSelectorOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const { postData: sendChat } = useApi<{
     ai_message: string
-    citations: string[]
+    citations: { chunk_text: string; doc_name: string }[]
     session_id: string
   }>("chat")
 
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDocumentSelectorOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+
+  useEffect(() => {
+    const completedDocs = documents.filter(
+      (doc) => doc.process_state.toLowerCase() === "completed"
+    );
+    const completedDocIds = completedDocs.map((doc) => doc.doc_id);
+
+    setSelectedDocuments((prev) => {
+      const prevIds = prev.map((doc) => doc.doc_id);
+
+      const stillCompleted = prev.filter((doc) =>
+        completedDocIds.includes(doc.doc_id)
+      );
+      const newOnes = completedDocs.filter(
+        (doc) => !prevIds.includes(doc.doc_id)
+      );
+
+      return [...stillCompleted, ...newOnes];
+    });
+  }, [documents]);
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -86,13 +117,20 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
     setIsTyping(true)
 
     try {
+      const doc_Ids = selectedDocuments.map(doc => doc.doc_id)
+      if (doc_Ids.length === 0) {
+        toast.error('Please select at least one document for context')
+        setIsTyping(false)
+        return
+      }
       const res = await sendChat({
         user_message: userMessage.content,
-        user_id: user?.displayName || 'anonymous',
+        user_id: user?.displayName || 'System',
         case_id: String(caseData.case_id),
         session_id: String(sessionId),
-        document_ids: documents.map(d => d.id || d.doc_id)
-      })
+        document_ids: doc_Ids
+      });
+
 
       if (res) {
         const aiMessage: Message = {
@@ -100,7 +138,7 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
           type: 'ai',
           content: res.ai_message,
           timestamp: new Date().toISOString(),
-          sources: documents.map(doc => doc.filename)//res.citations
+          sources: res.citations.map(ct => ct?.doc_name)  //     documents.map(doc => doc.filename)//res.citations
         }
         setMessages(prev => [...prev, aiMessage])
       }
@@ -127,6 +165,49 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  const completedDocuments = documents.filter(doc => doc.process_state.toLowerCase() === 'completed')
+
+  const handleDocumentToggle = (document: Document) => {
+    setSelectedDocuments(prev =>
+      prev.some(d => d.doc_id === document.doc_id)
+        ? prev.filter(d => d.doc_id !== document.doc_id)
+        : [...prev, document]
+    )
+    setIsDocumentSelectorOpen(false) // 👈 close after toggle
+  }
+
+  const handleSelectAllDocuments = () => {
+    setSelectedDocuments(completedDocuments)
+  }
+
+  const handleDeselectAllDocuments = () => {
+    setSelectedDocuments([])
+  }
+
+  const getContextDescription = () => {
+    if (completedDocuments.length === selectedDocuments.length) {
+      return `all ${completedDocuments.length} documents`
+    }
+    if (selectedDocuments.length === 1) {
+      return `"${selectedDocuments[0].filename}"`
+    }
+    return `${selectedDocuments.length} selected documents`
+  }
+
+  const getSelectedDocumentNamesShort = () => {
+    if (completedDocuments.length === selectedDocuments.length) {
+      return `All documents (${completedDocuments.length})`
+    }
+
+    const selectedCount = selectedDocuments.length
+    if (selectedCount === 0) return 'No documents selected'
+
+    if (selectedCount === 1) {
+      return selectedDocuments[0]?.filename || 'Selected document'
+    }
+    return `${selectedCount} documents selected`
+  }
+
   if (!documents || documents.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -148,12 +229,12 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
     )
   }
 
-  const toggleExpand = (index: number) => {
-    setExpandedSources((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
-  };
+  // const toggleExpand = (index: number) => {
+  //   setExpandedSources((prev) => ({
+  //     ...prev,
+  //     [index]: !prev[index],
+  //   }));
+  // };
 
   const handlePrint = (message?: Message) => {
     const html = message
@@ -193,18 +274,93 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
             <p className="text-sm text-muted-foreground">Ask questions about {caseData.title}</p>
           </div>
         </div>
-        <div
-          className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center cursor-pointer
-             hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+        <Button
           onClick={() => handlePrint()}
-          title="Export full chat"
-          hidden={messages.length <= 2}
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground hover:text-foreground"
+          disabled={messages.length <= 2}
         >
-          <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <Printer className="w-5 h-5 mr-2" />
+          Print Chat
+        </Button>
+      </div>
+
+      {/* Compact Document Selection */}
+      <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border border-primary-solid/40 bg-surface ">
+        <div className="flex items-center gap-2 text-sm text-bold">
+          <FileText className="w-4 h-4" />
+          <span>Context:</span>
         </div>
 
+        <div className="relative flex-1" ref={dropdownRef}>
+          <button
+            onClick={() => setIsDocumentSelectorOpen(!isDocumentSelectorOpen)}
+            className="flex items-center cursor-pointer justify-between w-full px-3 py-2 text-sm bg-surface hover:bg-surface-hover border border-surface-border rounded-lg transition-colors"
+          >
+            <span className="text-foreground truncate">{getSelectedDocumentNamesShort()}</span>
+            <ChevronDown className="w-4 h-4 text-muted-foreground ml-2 flex-shrink-0" />
+          </button>
 
+          {isDocumentSelectorOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-surface-border rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
 
+              {(
+                <div className="p-3">
+                  <div className="flex gap-2 mb-3">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleSelectAllDocuments}
+                      disabled={selectedDocuments.length === completedDocuments.length}
+                      className="text-xs h-7"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleDeselectAllDocuments}
+                      disabled={selectedDocuments.length === 0}
+                      className="text-xs h-7"
+                    >
+                      Deselect All
+                    </Button>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto"
+                    style={{ height: '256px' }}>
+                    {completedDocuments.map((document) => (
+                      <label
+                        key={document.id}
+                        className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-hover cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedDocuments.includes(document)}
+                          onChange={() => handleDocumentToggle(document)}
+                          className="w-4 h-4 text-primary-solid rounded border-muted focus:ring-primary-solid focus:ring-2"
+                        />
+                        <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate text-sm">{document.filename}</p>
+                          <p className="text-xs text-muted-foreground">{document.size} • {document.mime_type}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+
+                  {completedDocuments.length === 0 && (
+                    <div className="text-center py-4 text-muted-foreground">
+                      <FileText className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                      <p className="text-xs">No completed documents available</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Messages Container */}
@@ -287,7 +443,7 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
                       className="p-1 hover:bg-muted/20 rounded-full transition-colors"
                       title="Print this AI message"
                     >
-                      <FileDownIcon className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                      <Printer className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                     </button>
                   </div>
                 )}
@@ -349,7 +505,7 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask a question about this case..."
+              placeholder={selectedDocuments.length === 0 ? 'Please select at least one document for context' : `Ask a question about ${getContextDescription()}...`}
               className="flex-1"
               disabled={isTyping}
             />
