@@ -138,7 +138,17 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
           type: 'ai',
           content: res.ai_message,
           timestamp: new Date().toISOString(),
-          sources: res.citations.map(ct => ct?.doc_name)  //     documents.map(doc => doc.filename)//res.citations
+          sources: Array.from(
+            new Set(
+              res.citations.map(ct => {
+                if (!ct?.doc_name) return "";
+                const fileName = ct.doc_name.split(/[\\/]/).pop()!;
+                return fileName.includes("_")
+                  ? fileName.substring(fileName.indexOf("_") + 1)
+                  : fileName;
+              })
+            )
+          ),
         }
         setMessages(prev => [...prev, aiMessage])
       }

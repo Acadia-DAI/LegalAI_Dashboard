@@ -61,8 +61,8 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
         toast.error(`${file.name} is not a PDF file`)
         return false
       }
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error(`${file.name} is too large. Maximum size is 10MB`)
+      if (file.size > 10 * 1024 * 1024 * 1024) { // 10MB limit
+        toast.error(`${file.name} is too large. Maximum size is 100MB`)
         return false
       }
       const alreadyInSelected = selectedFiles.some(f => f.name === file.name && f.size === file.size)
@@ -245,7 +245,7 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
               {dragActive ? 'Drop files here' : 'Choose files or drag and drop'}
             </h3>
             <p className="text-muted-foreground mb-4">
-              PDF files up to 10MB each. You can select multiple files.
+              PDF files up to 100MB each. You can select multiple files.
             </p>
             <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
               <Upload className="w-4 h-4 mr-2" />
@@ -302,7 +302,7 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
               {uploadMode === 'file' ? (
                 <>
                   <li>• Only PDF files are supported</li>
-                  <li>• Maximum file size: 10MB per file</li>
+                  <li>• Maximum file size: 100MB per file</li>
                   <li>• Files will be processed automatically for AI analysis</li>
                   <li>• Processing may take a few minutes depending on file size</li>
                 </>
