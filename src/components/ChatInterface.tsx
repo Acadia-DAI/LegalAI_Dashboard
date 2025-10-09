@@ -9,6 +9,7 @@ import { useApi } from '../hooks/UseApi'
 import { useAuthStore } from '../store/AuthStore'
 import { renderStyledMessages } from './PrintRenderer'
 import { set } from 'react-hook-form'
+import ReactMarkdown from 'react-markdown'
 
 
 interface ChatInterfaceProps {
@@ -396,7 +397,7 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
                     : "bg-surface border border-surface-border"
                     }`}
                 >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                    <ReactMarkdown className='text-sm leading-relaxed'>{message.content}</ReactMarkdown>
 
                   {/* Sources */}
                   {message.sources && message.sources.length > 0 && (

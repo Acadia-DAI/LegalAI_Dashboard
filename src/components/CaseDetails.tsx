@@ -13,13 +13,14 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useApi } from '../hooks/UseApi'
 import { type Case, type Document } from '../types/api-models'
-import { formatDateTimeToDate } from '../utils/datetime'
+import { formatDateTimeToDate, formatFileSize } from '../utils/datetime'
 import { ChatInterface } from './ChatInterface'
-import { DocumentSummary } from './DocumentSummary'
 import { DocumentUpload } from './DocumentUpload'
 import { Badge } from './modern/Badge'
 import { Button } from './modern/Button'
 import { Card } from './modern/Card'
+// import { DocumentSummary } from './DocumentSummary'
+import { DocumentSummary } from './doc_summary/DocumentSummary'
 
 interface CaseDetailsProps {
   case: Case
@@ -62,7 +63,7 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
             doc_id: doc.doc_id,
             filename: doc.filename,
             mime_type: doc.mime_type?.includes('pdf') ? 'PDF' : 'Unknown',
-            size: `${(doc.size / (1024 * 1024)).toFixed(1)} MB`,
+            size: formatFileSize(doc.size),
             uploaded_at: doc.uploaded_at,
             process_state: doc.process_state,
             uploaded_by: doc.uploaded_by
@@ -74,7 +75,19 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
     loadCase()
   }, [caseData.case_id])
 
-  const handleDocumentUpload = async () => {
+  const handleDocumentUpload = async (files: File[]) => {
+    const tempDocs = files.map((file) => ({
+      id: `temp-${Date.now()}-${file.name}`,
+      doc_id: `temp-${Date.now()}-${file.name}`,
+      filename: file.name,
+      mime_type: file.type?.includes('pdf') ? 'PDF' : 'Unknown',
+      size: file.size,
+      uploaded_at: new Date().toISOString(),
+      process_state: 'UPLOADING' as const,
+      uploaded_by: 'Anonymous'
+    }));
+
+    setDocuments((prev) => [...prev, ...tempDocs]);
     try {
       const result = await fetchCaseDetails()
       if (result) {
@@ -84,7 +97,7 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
             doc_id: doc.doc_id,
             filename: doc.filename,
             mime_type: doc.mime_type?.includes('pdf') ? 'PDF' : 'Unknown',
-            size: `${(doc.size / (1024 * 1024)).toFixed(1)} MB`,
+            size: formatFileSize(doc.size),
             uploaded_at: doc.uploaded_at,
             uploaded_by: doc.uploaded_by,
             process_state: doc.process_state
@@ -246,7 +259,9 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
                     <div className="text-sm opacity-90">Add PDFs to the case</div>
                   </div>
                 </Button>
-                <Button
+
+
+                {/* <Button
                   onClick={handleGenerateSummary}
                   disabled={documents.length === 0 || isGeneratingSummary}
                   className="flex items-center justify-center gap-2 p-4 h-auto gradient-secondary text-white"
@@ -256,7 +271,7 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
                     <div className="font-medium">Generate Summary</div>
                     <div className="text-sm opacity-90">AI analysis of documents</div>
                   </div>
-                </Button>
+                </Button> */}
                 <Button
                   onClick={() => setActiveTab('chat')}
                   // disabled={!caseData.summary}
@@ -304,11 +319,19 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
                           <span>•</span>
                           <span>{doc.size}</span>
                           <span>•</span>
-                          <span>Uploaded {formatDateTimeToDate(doc.uploaded_at)}</span>
+                          <span>{doc.process_state === 'UPLOADING'
+                            ? 'Uploading...'
+                            : `Uploaded ${formatDateTimeToDate(doc.uploaded_at)}`}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {doc.process_state === 'UPLOADING' && (
+                        <div className="flex items-center gap-2 text-sm text-yellow-600">
+                          <div className="w-4 h-4 border-2 border-yellow-600/20 border-t-yellow-600 rounded-full animate-spin" />
+                          Uploading
+                        </div>
+                      )}
                       {doc.process_state === 'PROCESSING' && (
                         <div className="flex items-center gap-2 text-sm text-yellow-600">
                           <div className="w-4 h-4 border-2 border-yellow-600/20 border-t-yellow-600 rounded-full animate-spin" />
@@ -342,12 +365,11 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
         )}
 
         {activeTab === 'summary' && (
-          <DocumentSummary
-            caseData={caseData}
-            documents={documents}
-            isGeneratingSummary={isGeneratingSummary}
-            onGenerateSummary={handleGenerateSummary}
-          />
+          // <DocumentSummary
+          //   caseData={caseData}
+          //   documents={documents}
+          // />
+            <DocumentSummary caseData={caseData} documents={documents} />
         )}
 
         {activeTab === 'chat' && <ChatInterface caseData={caseData} documents={documents} />}

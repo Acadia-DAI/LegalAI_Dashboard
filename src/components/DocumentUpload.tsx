@@ -12,7 +12,7 @@ import type { Document } from '@/types/api-models'
 interface DocumentUploadProps {
   isOpen: boolean
   onClose: () => void
-  onUpload: () => void
+  onUpload: (files: File[]) => void
   caseId: number;
   existingDocs: Document[]
 }
@@ -153,7 +153,7 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
       setSelectedFiles([])
       setUrls([])
       setUrlInput('')
-      onUpload()
+      onUpload(selectedFiles)
       onClose()
     } catch (err: any) {
       toast.error(err.message || 'Upload failed. Please try again.')

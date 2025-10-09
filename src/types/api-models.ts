@@ -22,8 +22,13 @@ export interface Document {
   mime_type: string;
   size: number;
   uploaded_at: string;
-  process_state: "PROCESSING" | "COMPLETED" | "ERROR";
+  process_state: "PROCESSING" | "COMPLETED" | "ERROR" | "UPLOADING";
   uploaded_by: string;
+}
+
+export interface CaseDocumentSummaryOut extends Document {
+  summary_state: "PROCESSING" | "COMPLETED" | "ERROR";
+  doc_summary?: string | null;
 }
 
 
@@ -33,4 +38,13 @@ export interface Message {
   content: string
   timestamp: string
   sources?: string[]
+}
+
+export interface DocumentSummary {
+  documentId: string
+  summary: string
+  keyPoints: string[]
+  confidence: number
+  generatedAt: string
+  wordCount: number
 }

@@ -15,6 +15,14 @@ if [ -n "$REACT_APP_UI_BASE_URL" ]; then
   echo "  REACT_APP_UI_BASE_URL: '$REACT_APP_UI_BASE_URL'," >> /usr/share/nginx/html/envConfig.js
 fi
 
+if [ -n "$CLIENT_ID" ]; then
+  echo "  CLIENT_ID: '$CLIENT_ID'," >> /usr/share/nginx/html/envConfig.js
+fi
+
+if [ -n "$TENANT_ID" ]; then
+  echo "  TENANT_ID: '$TENANT_ID'," >> /usr/share/nginx/html/envConfig.js
+fi
+
 echo "};" >> /usr/share/nginx/html/envConfig.js
 
 echo " config.js generated:"
