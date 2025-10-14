@@ -35,7 +35,7 @@ export function SummaryHeader({
             <Button variant="outline" size="sm" onClick={() => exportSummary(selectedDocument.doc_id)}>
               <Download className="w-4 h-4 mr-2" /> Export
             </Button>
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={() => loadDocumentSummary(selectedDocument.doc_id)}
@@ -43,7 +43,7 @@ export function SummaryHeader({
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingSummary ? "animate-spin" : ""}`} />
               Refresh
-            </Button>
+            </Button> */}
           </div>
         )}
       </div>

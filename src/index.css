@@ -300,9 +300,15 @@
     display: list-item;
   }
 
-  ol, ul, menu {
-    list-style: none;
-  }
+ ul, ol {
+  list-style: revert !important;
+  margin-left: 1.5rem !important;
+  padding-left: 1.5rem !important;
+}
+
+li::marker {
+  color: currentColor !important;
+}
 
   img, svg, video, canvas, audio, iframe, embed, object {
     vertical-align: middle;
@@ -6117,4 +6123,9 @@ html {
   20%, 50% {
     opacity: 0;
   }
+}
+
+
+.prose :where(ul > li, ol > li)::marker {
+  color: #090909;
 }

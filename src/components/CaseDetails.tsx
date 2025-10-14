@@ -259,19 +259,17 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
                     <div className="text-sm opacity-90">Add PDFs to the case</div>
                   </div>
                 </Button>
-
-
-                {/* <Button
-                  onClick={handleGenerateSummary}
-                  disabled={documents.length === 0 || isGeneratingSummary}
+                <Button
+                  onClick={() => setActiveTab('summary')}
+                  disabled={documents.length === 0}
                   className="flex items-center justify-center gap-2 p-4 h-auto gradient-secondary text-white"
                 >
                   <Sparkles className="w-5 h-5" />
                   <div className="text-left">
-                    <div className="font-medium">Generate Summary</div>
-                    <div className="text-sm opacity-90">AI analysis of documents</div>
+                    <div className="font-medium">View Summaries</div>
+                    <div className="text-sm opacity-90">Document-wise analysis</div>
                   </div>
-                </Button> */}
+                </Button>
                 <Button
                   onClick={() => setActiveTab('chat')}
                   // disabled={!caseData.summary}
