@@ -116,9 +116,9 @@ const getStatusBadge = (status: Document["process_state"]) => {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 w-[250px]">
                       {getStatusIcon(doc.process_state)}
-                      <p className="font-medium text-foreground text-sm truncate">{doc.filename}</p>
+                      <p className="font-medium text-foreground text-sm truncate ">{doc.filename}</p>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       {getStatusBadge(doc.process_state)}

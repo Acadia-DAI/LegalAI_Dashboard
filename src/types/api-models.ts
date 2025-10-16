@@ -48,3 +48,9 @@ export interface DocumentSummary {
   generatedAt: string
   wordCount: number
 }
+
+export interface OverallSummary {
+  overallSummary: string
+  generatedAt: string
+  documentsAnalyzed: number
+}

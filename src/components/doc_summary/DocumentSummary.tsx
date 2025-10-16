@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import {
-  Sparkles,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react";
-import { Card } from "../modern/Card";
-import { Button } from "../modern/Button";
-import type { Case, CaseDocumentSummaryOut, Document } from "@/types/api-models";
 import { useApi } from "@/hooks/UseApi";
+import type { Case, CaseDocumentSummaryOut, Document } from "@/types/api-models";
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Sparkles,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
+import { Card } from "../modern/Card";
 import { DocumentList } from "./DocumentList";
-import { SummaryHeader } from "./SummaryHeader";
 import { SummaryContent } from "./SummaryContent";
+import { SummaryHeader } from "./SummaryHeader";
 
 
 interface DocumentSummaryData {
@@ -106,6 +106,23 @@ export function DocumentSummary({
     if (doc?.process_state.toLowerCase() === "completed") loadDocumentSummary(id);
   };
 
+  const handleExportSummary = (id: string) => {
+
+    const s = documentSummaries[id];
+    const d = documents.find((x) => x.doc_id === id);
+    if (s && d) {
+      const blob = new Blob([s.summary], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${d.filename}-summary.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Summary exported successfully!')
+
+    }
+  }
+
   const selectedDocument = documents.find((d) => d.id === selectedDocumentId) || null;
   const selectedSummary = selectedDocumentId ? documentSummaries[selectedDocumentId] : null;
   const isLoadingSummary = selectedDocumentId ? loadingSummaries[selectedDocumentId] : false;
@@ -130,81 +147,69 @@ export function DocumentSummary({
   }
 
   return (
-  <div className="space-y-6">
-    {/* Header */}
-    <div className="flex items-center justify-between">
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">Document Summaries</h3>
-        <p className="text-muted-foreground">
-          AI-powered analysis of individual documents
-        </p>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-            <span>{completedDocuments.length} Ready</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-yellow-600" />
-            <span>{processingDocuments.length} Processing</span>
-          </div>
-          {errorDocuments.length > 0 && (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Document Summaries</h3>
+          <p className="text-muted-foreground">
+            AI-powered analysis of individual documents
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-red-600" />
-              <span>{errorDocuments.length} Error</span>
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span>{completedDocuments.length} Ready</span>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-yellow-600" />
+              <span>{processingDocuments.length} Processing</span>
+            </div>
+            {errorDocuments.length > 0 && (
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+                <span>{errorDocuments.length} Error</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ✅ Main grid layout */}
+      <div className="flex gap-6 h-[800px]">
+        {/* Left panel (1/3) */}
+        <div className="flex">
+          <DocumentList
+            documents={filteredDocuments}
+            selectedDocumentId={selectedDocumentId}
+            filterStatus={filterStatus}
+            searchQuery={searchQuery}
+            onSelect={handleDocumentSelect}
+            setSearchQuery={setSearchQuery}
+            setFilterStatus={setFilterStatus}
+          />
+        </div>
+
+        {/* Right panel (2/3) */}
+        <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden">
+          <SummaryHeader
+            selectedDocument={selectedDocument}
+            selectedSummary={selectedSummary}
+            loadDocumentSummary={loadDocumentSummary}
+            exportSummary={(id) => handleExportSummary(id)}
+            isLoadingSummary={isLoadingSummary}
+          />
+
+          <SummaryContent
+            selectedDocument={selectedDocument}
+            selectedSummary={selectedSummary}
+            isLoadingSummary={isLoadingSummary}
+            summaryError={summaryError}
+            loadDocumentSummary={loadDocumentSummary}
+          />
         </div>
       </div>
     </div>
-
-    {/* ✅ Main grid layout */}
-    <div className="flex gap-6 h-[800px]">
-      {/* Left panel (1/3) */}
-      <div className="flex">
-        <DocumentList
-          documents={filteredDocuments}
-          selectedDocumentId={selectedDocumentId}
-          filterStatus={filterStatus}
-          searchQuery={searchQuery}
-          onSelect={handleDocumentSelect}
-          setSearchQuery={setSearchQuery}
-          setFilterStatus={setFilterStatus}
-        />
-      </div>
-
-      {/* Right panel (2/3) */}
-      <div className="flex-1 flex flex-col border border-border rounded-lg overflow-hidden">
-        <SummaryHeader
-          selectedDocument={selectedDocument}
-          selectedSummary={selectedSummary}
-          loadDocumentSummary={loadDocumentSummary}
-          exportSummary={(id) => {
-            const s = documentSummaries[id];
-            const d = documents.find((x) => x.id === id);
-            if (s && d) {
-              const blob = new Blob([s.summary], { type: "text/markdown" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `${d.filename}-summary.md`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }
-          }}
-          isLoadingSummary={isLoadingSummary}
-        />
-
-        <SummaryContent
-          selectedDocument={selectedDocument}
-          selectedSummary={selectedSummary}
-          isLoadingSummary={isLoadingSummary}
-          summaryError={summaryError}
-          loadDocumentSummary={loadDocumentSummary}
-        />
-      </div>
-    </div>
-  </div>
-);
+  );
 }

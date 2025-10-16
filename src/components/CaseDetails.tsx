@@ -12,7 +12,7 @@ import {
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useApi } from '../hooks/UseApi'
-import { type Case, type Document } from '../types/api-models'
+import { type Case, type Document, type OverallSummary } from '../types/api-models'
 import { formatDateTimeToDate, formatFileSize } from '../utils/datetime'
 import { ChatInterface } from './ChatInterface'
 import { DocumentUpload } from './DocumentUpload'
@@ -21,6 +21,7 @@ import { Button } from './modern/Button'
 import { Card } from './modern/Card'
 // import { DocumentSummary } from './DocumentSummary'
 import { DocumentSummary } from './doc_summary/DocumentSummary'
+import { CaseOverviewSummary } from './CaseOverviewSummary'
 
 interface CaseDetailsProps {
   case: Case
@@ -48,6 +49,7 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
   const [documents, setDocuments] = useState<Document[]>([])
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
+  const [overallSummary, setOverallSummary] = useState<OverallSummary | null>(null)
 
   const { fetchData: fetchCaseDetails } = useApi<any>(`cases/${caseData.case_id}`)
   const { deleteData: deleteDocument } = useApi("cases");
@@ -283,6 +285,13 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
                 </Button>
               </div>
             </Card>
+
+            <CaseOverviewSummary
+              documents={documents}
+              caseId={caseData.case_id}
+              overallSummary={overallSummary}
+              setOverallSummary={setOverallSummary}
+            />
           </div>
         )}
 

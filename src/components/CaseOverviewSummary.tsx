@@ -1,49 +1,33 @@
 import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Sparkles, FileText, TrendingUp, AlertCircle, Download, RefreshCw, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Sparkles, FileText, AlertCircle, Download, RefreshCw, CheckCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from './modern/Button'
 import { Card } from './modern/Card'
-import { Badge } from './modern/Badge'
 import toast from 'react-hot-toast'
+import type { Document, OverallSummary } from '@/types/api-models'
+import { useApi } from '@/hooks/UseApi'
 
-interface Document {
-  id: string
-  name: string
-  type: string
-  size: string
-  uploadedAt: string
-  status: 'processing' | 'completed' | 'error'
-}
 
 interface CaseOverviewSummaryProps {
   documents: Document[]
-  caseId: string
+  caseId: Number
+  overallSummary: OverallSummary | null
+  setOverallSummary: (summary: OverallSummary) => void
 }
 
-interface CombinedSummary {
-  overallSummary: string
-  keyInsights: string[]
-  riskFactors: string[]
-  recommendations: string[]
-  confidence: number
-  generatedAt: string
-  documentsAnalyzed: number
-}
-
-export function CaseOverviewSummary({ documents, caseId }: CaseOverviewSummaryProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [summary, setSummary] = useState<CombinedSummary | null>(null)
+export function CaseOverviewSummary({ documents, caseId, overallSummary, setOverallSummary }: CaseOverviewSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { fetchData, loading } = useApi<string>(`cases/${caseId}/summary`)
 
-  const completedDocuments = documents.filter(doc => doc.status === 'completed')
-  const processingDocuments = documents.filter(doc => doc.status === 'processing')
+  const completedDocuments = documents.filter(doc => doc.process_state.toLowerCase() === 'completed')
+  const processingDocuments = documents.filter(doc => doc.process_state.toLowerCase() === 'processing')
   const hasDocuments = documents.length > 0
   const canGenerateSummary = completedDocuments.length > 0
 
   // Auto-load summary if completed documents exist
   useEffect(() => {
-    if (canGenerateSummary && !summary && !isLoading) {
+    if (canGenerateSummary && !overallSummary && !loading) {
       // Auto-generate on mount if we have completed documents
       // Comment this out if you don't want auto-generation
       // handleGenerateSummary()
@@ -51,89 +35,37 @@ export function CaseOverviewSummary({ documents, caseId }: CaseOverviewSummaryPr
   }, [])
 
   const handleGenerateSummary = async () => {
-    setIsLoading(true)
     setError(null)
 
     try {
-      // Simulate API call to backend
-      // Replace this with your actual API call
-      // const response = await fetch(`/api/cases/${caseId}/combined-summary`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ documentIds: completedDocuments.map(d => d.id) })
-      // })
-      // const data = await response.json()
+      const result = await fetchData()
 
-      // Mock delay to simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2500))
-
-      // Mock response - replace with actual API response
-      const mockSummary: CombinedSummary = {
-        overallSummary: `# Comprehensive Case Analysis\n\nBased on the analysis of **${completedDocuments.length} documents**, this case presents a complex medical-legal scenario involving detailed medical records, insurance documentation, and surgical reports.\n\n## Executive Summary\n\nThe documentation reveals a **6-month treatment period** with consistent medical interventions. The insurance policy shows specific coverage provisions that are directly relevant to the current claim. Surgical procedures were conducted according to standard medical protocols, with comprehensive documentation supporting the treatment approach.\n\n### Key Observations\n\n- Medical records demonstrate a clear **timeline of treatment** from initial diagnosis through completed procedures\n- Insurance policy contains both coverage provisions and specific exclusions that require careful evaluation\n- All consent forms and administrative documentation are properly executed and legally compliant\n- Expert medical opinions corroborate the treatment plan and outcomes\n\n### Financial Impact\n\nEstimated claim value ranges from **$250,000 to $400,000** based on documented medical expenses, projected ongoing treatment needs, and applicable policy limits.\n\n### Timeline\n\n- **Initial diagnosis**: January 2024\n- **Treatment period**: January - July 2024\n- **Primary surgical procedure**: March 2024\n- **Follow-up care**: Ongoing through present`,
-
-        keyInsights: [
-          'Medical records show consistent treatment patterns with no significant gaps in care documentation',
-          'Insurance policy provisions indicate potential coverage limitations that may affect claim value',
-          'All required consent forms and legal documentation are properly executed and compliant',
-          'Surgical procedure reports demonstrate adherence to standard medical protocols',
-          'Expert medical opinions support the treatment approach and documented outcomes'
-        ],
-
-        riskFactors: [
-          'Specific insurance policy exclusions may limit coverage for certain treatment aspects',
-          'Gap between initial diagnosis and treatment initiation could be questioned by opposing counsel',
-          'Pre-existing condition clauses in policy require careful analysis',
-          'Some medical records contain handwritten notes that may require expert interpretation'
-        ],
-
-        recommendations: [
-          'Obtain independent medical examination to validate treatment necessity and appropriateness',
-          'Conduct detailed insurance policy review with focus on exclusion clauses and coverage limits',
-          'Secure additional expert medical opinions to strengthen treatment justification',
-          'Request complete hospital administrative and billing records for comprehensive cost analysis',
-          'Consider early settlement discussions given strength of medical documentation'
-        ],
-
-        confidence: 87,
-        generatedAt: new Date().toISOString(),
-        documentsAnalyzed: completedDocuments.length
+      if (result) {
+        const combined: OverallSummary = {
+          overallSummary: result,
+          generatedAt: new Date().toISOString(),
+          documentsAnalyzed: completedDocuments.length,
+        }
+        setOverallSummary(combined)
+        toast.success('Overall summary generated successfully!')
+      } else {
+        setError('Failed to generate Overall summary. Please try again.')
+        toast.error('Failed to generate summary.')
       }
-
-      setSummary(mockSummary)
-      toast.success('Combined summary generated successfully!')
     } catch (err) {
-      setError('Failed to generate combined summary. Please try again.')
-      toast.error('Failed to generate summary')
-      console.error('Summary generation error:', err)
-    } finally {
-      setIsLoading(false)
+      setError('Failed to generate Overall summary. Please try again.')
+      toast.error('Failed to generate Overall summary')
+      console.error('Overall Summary generation error:', err)
     }
   }
 
   const handleExportSummary = () => {
-    if (!summary) return
+    if (!overallSummary) return
+    const exportContent = `# Case Overall Summary
+Generated: ${new Date(overallSummary.generatedAt).toLocaleString()}
+Documents Analyzed: ${overallSummary.documentsAnalyzed}
 
-    const exportContent = `# Case Summary Report
-Generated: ${new Date(summary.generatedAt).toLocaleString()}
-Documents Analyzed: ${summary.documentsAnalyzed}
-Confidence Level: ${summary.confidence}%
-
-${summary.overallSummary}
-
----
-
-## Key Insights
-${summary.keyInsights.map((insight, i) => `${i + 1}. ${insight}`).join('\n')}
-
----
-
-## Risk Factors
-${summary.riskFactors.map((risk, i) => `${i + 1}. ${risk}`).join('\n')}
-
----
-
-## Recommendations
-${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+${overallSummary.overallSummary}
 `
 
     const blob = new Blob([exportContent], { type: 'text/markdown' })
@@ -177,7 +109,7 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
             <p className="text-muted-foreground">AI-powered analysis of all case documents</p>
           </div>
           <div className="flex items-center gap-3">
-            {summary && (
+            {overallSummary && (
               <Button
                 variant="outline"
                 size="sm"
@@ -189,10 +121,10 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
             )}
             <Button
               onClick={handleGenerateSummary}
-              disabled={!canGenerateSummary || isLoading}
+              disabled={!canGenerateSummary || loading}
               className="gradient-secondary text-white"
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
                   Generating...
@@ -200,7 +132,7 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  {summary ? 'Regenerate' : 'Generate'} Summary
+                  {overallSummary ? 'Regenerate' : 'Generate'} Summary
                 </>
               )}
             </Button>
@@ -266,7 +198,7 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
       )}
 
       {/* Loading State */}
-      {isLoading && (
+      {loading && (
         <Card className="p-8">
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
@@ -289,7 +221,7 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
       )}
 
       {/* Summary Content */}
-      {!isLoading && summary && (
+      {!loading && overallSummary && (
         <div className="space-y-6">
           {/* Main Summary with Markdown */}
           <Card className="overflow-hidden">
@@ -305,7 +237,7 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
                   <div>
                     <h4 className="font-semibold text-foreground">Overall Analysis</h4>
                     <p className="text-sm text-muted-foreground">
-                      Based on {summary.documentsAnalyzed} documents • {summary.confidence}% confidence
+                      Based on {overallSummary.documentsAnalyzed} documents
                     </p>
                   </div>
                 </div>
@@ -355,99 +287,25 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
                       ),
                     }}
                   >
-                    {summary.overallSummary}
+                    {overallSummary.overallSummary}
                   </ReactMarkdown>
                 </div>
               </div>
             )}
           </Card>
 
-          {/* Key Insights */}
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-              </div>
-              <h4 className="font-semibold text-foreground">Key Insights</h4>
-            </div>
-            <div className="space-y-3">
-              {summary.keyInsights.map((insight, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="text-xs font-medium text-blue-600">{index + 1}</span>
-                  </div>
-                  <p className="text-foreground flex-1">{insight}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Risk Factors */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                </div>
-                <h4 className="font-semibold text-foreground">Risk Factors</h4>
-              </div>
-              <div className="space-y-3">
-                {summary.riskFactors.map((risk, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="w-5 h-5 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <AlertCircle className="w-3 h-3 text-red-600" />
-                    </div>
-                    <p className="text-foreground text-sm flex-1">{risk}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Recommendations */}
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </div>
-                <h4 className="font-semibold text-foreground">Recommendations</h4>
-              </div>
-              <div className="space-y-3">
-                {summary.recommendations.map((recommendation, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="w-5 h-5 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <CheckCircle className="w-3 h-3 text-green-600" />
-                    </div>
-                    <p className="text-foreground text-sm flex-1">{recommendation}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-
           {/* Metadata Footer */}
           <Card className="p-6">
             <h4 className="font-semibold text-foreground mb-4">Analysis Metadata</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Confidence Level</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-surface rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${summary.confidence}%` }}
-                    />
-                  </div>
-                  <span className="font-medium text-foreground">{summary.confidence}%</span>
-                </div>
-              </div>
+            <div className="flex justify-between gap-6">
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Documents Analyzed</p>
-                <p className="font-medium text-foreground">{summary.documentsAnalyzed} of {documents.length}</p>
+                <p className="font-medium text-foreground">{overallSummary.documentsAnalyzed} of {documents.length}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Generated</p>
                 <p className="font-medium text-foreground">
-                  {new Date(summary.generatedAt).toLocaleString()}
+                  {new Date(overallSummary.generatedAt).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -456,7 +314,7 @@ ${summary.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
       )}
 
       {/* Empty State - No Summary Yet */}
-      {!isLoading && !summary && !error && (
+      {!loading && !overallSummary && !error && (
         <Card className="p-8 text-center">
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
