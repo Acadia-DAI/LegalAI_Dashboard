@@ -6,20 +6,20 @@ import { Card } from './modern/Card'
 import toast from 'react-hot-toast'
 import type { Document, OverallSummary } from '@/types/api-models'
 import { useApi } from '@/hooks/UseApi'
+import { useOverallSummaryStore } from '@/store/OverallSummaryStore'
 
 
 interface CaseOverviewSummaryProps {
   documents: Document[]
-  caseId: Number
-  overallSummary: OverallSummary | null
-  setOverallSummary: (summary: OverallSummary) => void
+  caseId: number
 }
 
-export function CaseOverviewSummary({ documents, caseId, overallSummary, setOverallSummary }: CaseOverviewSummaryProps) {
+export function CaseOverviewSummary({ documents, caseId }: CaseOverviewSummaryProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { fetchData, loading } = useApi<string>(`cases/${caseId}/summary`)
-
+  const {getSummary, setSummary } = useOverallSummaryStore();
+  const overallSummary = getSummary(caseId);
   const completedDocuments = documents.filter(doc => doc.process_state.toLowerCase() === 'completed')
   const processingDocuments = documents.filter(doc => doc.process_state.toLowerCase() === 'processing')
   const hasDocuments = documents.length > 0
@@ -27,12 +27,10 @@ export function CaseOverviewSummary({ documents, caseId, overallSummary, setOver
 
   // Auto-load summary if completed documents exist
   useEffect(() => {
-    if (canGenerateSummary && !overallSummary && !loading) {
-      // Auto-generate on mount if we have completed documents
-      // Comment this out if you don't want auto-generation
-      // handleGenerateSummary()
+    if (!overallSummary && !loading) {
+      handleGenerateSummary()
     }
-  }, [])
+  }, [documents])
 
   const handleGenerateSummary = async () => {
     setError(null)
@@ -46,7 +44,7 @@ export function CaseOverviewSummary({ documents, caseId, overallSummary, setOver
           generatedAt: new Date().toISOString(),
           documentsAnalyzed: completedDocuments.length,
         }
-        setOverallSummary(combined)
+        setSummary(caseId, combined)
         toast.success('Overall summary generated successfully!')
       } else {
         setError('Failed to generate Overall summary. Please try again.')

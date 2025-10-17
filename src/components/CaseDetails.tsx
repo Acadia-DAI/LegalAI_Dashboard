@@ -49,7 +49,6 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
   const [documents, setDocuments] = useState<Document[]>([])
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false)
-  const [overallSummary, setOverallSummary] = useState<OverallSummary | null>(null)
 
   const { fetchData: fetchCaseDetails } = useApi<any>(`cases/${caseData.case_id}`)
   const { deleteData: deleteDocument } = useApi("cases");
@@ -289,8 +288,6 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
             <CaseOverviewSummary
               documents={documents}
               caseId={caseData.case_id}
-              overallSummary={overallSummary}
-              setOverallSummary={setOverallSummary}
             />
           </div>
         )}
