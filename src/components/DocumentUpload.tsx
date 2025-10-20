@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { useApi } from '../hooks/UseApi'
 import { API_BASE_URL } from "../../config";
 import type { Document } from '@/types/api-models'
+import { useAuthStore } from '@/store/AuthStore'
 
 interface DocumentUploadProps {
   isOpen: boolean
@@ -29,6 +30,7 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
   const [urlInput, setUrlInput] = useState('')
   const [urls, setUrls] = useState<{ id: string; url: string; name: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const user = useAuthStore((state) => state.user);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -138,7 +140,8 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
             method: 'POST',
             body: formData,
             headers: {
-              Authorization: `Bearer todoToken` // replace with real token later
+              Authorization: `Bearer todoToken`, // replace with real token later
+              "user-id": user?.displayName || user?.email || ""
             }
           });
 

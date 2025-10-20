@@ -27,7 +27,7 @@ export function CaseOverviewSummary({ documents, caseId }: CaseOverviewSummaryPr
 
   // Auto-load summary if completed documents exist
   useEffect(() => {
-    if (!overallSummary && !loading) {
+    if (canGenerateSummary && !overallSummary && !loading) {
       handleGenerateSummary()
     }
   }, [documents])

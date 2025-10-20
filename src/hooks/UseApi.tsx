@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios, { AxiosError } from "axios";
 import { API_BASE_URL } from "../../config";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/AuthStore";
 // import { useAuthStore } from "../store/AuthStore";
 
 
@@ -9,6 +10,7 @@ export const useApi = <T = unknown>(defaultPath: string) => {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const user = useAuthStore((state) => state.user);
   // const storeToken = useAuthStore((state) => state.token);
   // const { getAccessToken } = useAccessToken();
 
@@ -33,7 +35,7 @@ export const useApi = <T = unknown>(defaultPath: string) => {
         params: method === "GET" ? params : undefined,
         headers: {
           Authorization: `Bearer todoToken`, // Replace 'todoToken' with 'token' when implementing token retrieval
-          ...(payload instanceof FormData ? {} : { "Content-Type": "application/json" }),
+          ...(payload instanceof FormData ? {} : { "Content-Type": "application/json", "user-id": user?.displayName || user?.email || "" }),
         },
       });
 
