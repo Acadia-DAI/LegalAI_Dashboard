@@ -17,7 +17,7 @@ interface CasesDashboardProps {
 export function CasesDashboard({ cases, loading, onOpenCase, onNewCase }: CasesDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState<string>("all")
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table")
   const [visibleCards, setVisibleCards] = useState(5)
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10

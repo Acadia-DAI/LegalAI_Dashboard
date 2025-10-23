@@ -177,9 +177,9 @@ export function DocumentSummary({
       </div>
 
       {/* ✅ Main grid layout */}
-      <div className="flex gap-6 h-[800px]">
+      <div className="flex gap-6" style={{ height: "800px" }}>
         {/* Left panel (1/3) */}
-        <div className="flex">
+        <div className="flex flex-col" style={{ width: "320px" }}>
           <DocumentList
             documents={filteredDocuments}
             selectedDocumentId={selectedDocumentId}

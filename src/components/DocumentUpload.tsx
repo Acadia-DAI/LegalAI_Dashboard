@@ -5,10 +5,9 @@ import { Button } from './modern/Button'
 import { Card } from './modern/Card'
 import { Input } from './modern/Input'
 import toast from 'react-hot-toast'
-import { useApi } from '../hooks/UseApi'
-import { API_BASE_URL } from "../../config";
 import type { Document } from '@/types/api-models'
 import { useAuthStore } from '@/store/AuthStore'
+import { useUploadStore } from '@/store/UploadStore'
 
 interface DocumentUploadProps {
   isOpen: boolean
@@ -25,12 +24,13 @@ interface FileWithId extends File {
 export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs }: DocumentUploadProps) {
   const [dragActive, setDragActive] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<FileWithId[]>([])
-  const [isUploading, setIsUploading] = useState(false)
   const [uploadMode, setUploadMode] = useState<'file' | 'url'>('file')
   const [urlInput, setUrlInput] = useState('')
   const [urls, setUrls] = useState<{ id: string; url: string; name: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const user = useAuthStore((state) => state.user);
+  const { startUpload, getCaseUploadStatus } = useUploadStore()
+  const caseStatus = getCaseUploadStatus(caseId)
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -118,52 +118,27 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
   const removeUrl = (urlId: string) => {
     setUrls(prev => prev.filter(u => u.id !== urlId))
   }
-
-  const handleUpload = async () => {
-    if (uploadMode === 'file' && selectedFiles.length === 0) {
-      toast.error('Please select at least one file')
-      return
-    }
-    if (uploadMode === 'url' && urls.length === 0) {
-      toast.error('Please add at least one URL')
-      return
-    }
-
-    setIsUploading(true)
-    try {
-      if (uploadMode === 'file') {
-        for (const file of selectedFiles) {
-          const formData = new FormData()
-          formData.append('file', file)
-
-          const res = await fetch(`${API_BASE_URL}/cases/${caseId}/documents`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-              Authorization: `Bearer todoToken`, // replace with real token later
-              "user-id": user?.displayName || user?.email || ""
-            }
-          });
-
-          if (!res) throw new Error(`Upload failed for ${file.name}`)
-        }
-        toast.success(`${selectedFiles.length} document(s) uploaded successfully`)
-      } else {
-        // mock URL flow → later implement backend support
-        toast.success(`${urls.length} URL(s) added (mocked)`)
-      }
-
-      setSelectedFiles([])
-      setUrls([])
-      setUrlInput('')
-      onUpload(selectedFiles)
-      onClose()
-    } catch (err: any) {
-      toast.error(err.message || 'Upload failed. Please try again.')
-    } finally {
-      setIsUploading(false)
-    }
+const handleUpload = async () => {
+  if (uploadMode === 'file' && selectedFiles.length === 0) {
+    toast.error('Please select at least one file');
+    return;
   }
+  if (uploadMode === 'url' && urls.length === 0) {
+    toast.error('Please add at least one URL');
+    return;
+  }
+
+  onClose();
+
+  startUpload(caseId, selectedFiles, user);
+
+  setSelectedFiles([]);
+  setUrls([]);
+  setUrlInput('');
+
+  onUpload(selectedFiles);
+};
+
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
@@ -399,20 +374,21 @@ export function DocumentUpload({ isOpen, onClose, onUpload, caseId, existingDocs
         <Button
           variant="outline"
           onClick={onClose}
-          disabled={isUploading}
+          disabled={caseStatus.isUploading}
         >
           Cancel
         </Button>
         <Button
           onClick={handleUpload}
           disabled={
+            caseStatus.isUploading ||
             (uploadMode === 'file' && selectedFiles.length === 0) ||
-            (uploadMode === 'url' && urls.length === 0) ||
-            isUploading
+            (uploadMode === 'url' && urls.length === 0)
+
           }
           className="gradient-primary text-white"
         >
-          {isUploading ? (
+          {caseStatus.isUploading ? (
             <>
               <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
               {uploadMode === 'file' ? 'Uploading...' : 'Processing...'}

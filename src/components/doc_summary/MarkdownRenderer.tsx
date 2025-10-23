@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 
 export function MarkdownRenderer({ summary }: { summary: DocumentSummary }) {
   return (
-    <div className="p-6">
+    <div className="p-6 overflow-y-auto h-full">
       <div className="flex justify-between gap-4 mb-6 p-4 bg-surface/50 rounded-lg">
         {/* <div className="text-center">
           <p className="text-sm text-muted-foreground">Confidence</p>

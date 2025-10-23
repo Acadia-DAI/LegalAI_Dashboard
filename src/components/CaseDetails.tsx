@@ -356,7 +356,7 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteDocument(doc.doc_id)}
-                        className="text-red-500 hover:text-red-600"
+                        className="text-red-500 hover:text-red-600 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
