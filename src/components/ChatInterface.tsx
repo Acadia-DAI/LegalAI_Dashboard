@@ -1,15 +1,15 @@
-import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, MessageSquare, Sparkles, FileText, AlertCircle, PrinterIcon, Download, FileDown, Printer, FileDownIcon, ChevronDown, Settings } from 'lucide-react'
+import { AlertCircle, Bot, ChevronDown, FileDownIcon, FileText, MessageSquare, Printer, Send, User } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import toast from 'react-hot-toast'
+import ReactMarkdown from 'react-markdown'
+import { useApi } from '../hooks/UseApi'
+import { useAuthStore } from '../store/AuthStore'
+import type { Case, Document, Message } from '../types/api-models'
 import { Button } from './modern/Button'
 import { Card } from './modern/Card'
 import { Input } from './modern/Input'
-import toast from 'react-hot-toast'
-import type { Case, Document, Message } from '../types/api-models'
-import { useApi } from '../hooks/UseApi'
-import { useAuthStore } from '../store/AuthStore'
 import { renderStyledMessages } from './PrintRenderer'
-import { set } from 'react-hook-form'
-import ReactMarkdown from 'react-markdown'
+import { MarkdownFormatter } from './MarkdownFormatter'
 
 
 interface ChatInterfaceProps {
@@ -41,8 +41,8 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  // const [expandedSources, setExpandedSources] = useState<Record<number, boolean>>({});
-  const [sessionId] = useState(() => {
+  const [expandedSources, setExpandedSources] = useState<Record<number, boolean>>({});
+  const [sessionId, setSessionId] = useState(() => {
     const timestamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0];
     return `${caseData.case_id}_${timestamp}`;
   });
@@ -134,22 +134,37 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
 
 
       if (res) {
+        const uniqueCitations = Array.from(
+          new Map(
+            res.citations.map((ct) => [
+              `${ct.doc_name}_${ct.chunk_text}`,
+              ct,
+            ])
+          ).values()
+        );
+
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
           type: 'ai',
           content: res.ai_message,
           timestamp: new Date().toISOString(),
-          sources: Array.from(
-            new Set(
-              res.citations.map(ct => {
-                if (!ct?.doc_name) return "";
-                const fileName = ct.doc_name.split(/[\\/]/).pop()!;
-                return fileName.includes("_")
-                  ? fileName.substring(fileName.indexOf("_") + 1)
-                  : fileName;
-              })
-            )
-          ),
+          sources: uniqueCitations.map((ct) => ({
+            doc_name: ct.doc_name,
+            chunk_text: ct.chunk_text,
+          })),
+
+
+          /*  Array.from(
+             new Set(
+               res.citations.map(ct => {
+                 if (!ct?.doc_name) return "";
+                 const fileName = ct.doc_name.split(/[\\/]/).pop()!;
+                 return fileName.includes("_")
+                   ? fileName.substring(fileName.indexOf("_") + 1)
+                   : fileName;
+               })
+             )
+           ), */
         }
         setMessages(prev => [...prev, aiMessage])
       }
@@ -171,6 +186,26 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
     setInputValue(question)
     inputRef.current?.focus()
   }
+
+  const handleNewSession = () => {
+    const newSessionId = `${caseData.case_id}_${new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .split(".")[0]}`;
+    setSessionId(newSessionId);
+    setMessages([
+      {
+        id: '1',
+        type: 'ai',
+        content: `Hello! I'm your AI case analyst for "${caseData.title}". I've analyzed the uploaded documents and I'm ready to answer questions about this case. What would you like to know?`,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+    setInputValue('');
+    setIsTyping(false);
+    setExpandedSources({});
+    toast.success('New chat session started');
+  };
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -240,12 +275,12 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
     )
   }
 
-  // const toggleExpand = (index: number) => {
-  //   setExpandedSources((prev) => ({
-  //     ...prev,
-  //     [index]: !prev[index],
-  //   }));
-  // };
+  const toggleExpand = (index: number) => {
+    setExpandedSources((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
 
   const handlePrint = (message?: Message) => {
     const html = message
@@ -285,16 +320,28 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
             <p className="text-sm text-muted-foreground">Ask questions about {caseData.title}</p>
           </div>
         </div>
-        <Button
-          onClick={() => handlePrint()}
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground hover:text-foreground"
-          disabled={messages.length <= 2}
-        >
-          <Printer className="w-5 h-5 mr-2" />
-          Print Chat
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleNewSession}
+            variant="outline"
+            size="sm"
+            className="text-foreground border-surface-border hover:bg-surface-hover"
+          >
+            <Bot className="w-4 h-4 mr-2 text-blue-600" />
+            New Chat
+          </Button>
+
+          <Button
+            onClick={() => handlePrint()}
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            disabled={messages.length <= 2}
+          >
+            <Printer className="w-5 h-5 mr-2" />
+            Print Chat
+          </Button>
+        </div>
       </div>
 
       {/* Compact Document Selection */}
@@ -397,78 +444,50 @@ export function ChatInterface({ caseData, documents }: ChatInterfaceProps) {
                     : "bg-surface border border-surface-border"
                     }`}
                 >
-                  <ReactMarkdown className='text-sm leading-relaxed' components={{
-                    h1: ({ children }) => (
-                      <h1 className="text-foreground mb-4">{children}</h1>
-                    ),
-                    h2: ({ children }) => (
-                      <h2 className="text-foreground mb-3 mt-6">{children}</h2>
-                    ),
-                    h3: ({ children }) => (
-                      <h3 className="text-foreground mb-2 mt-4">{children}</h3>
-                    ),
-                    p: ({ children }) => (
-                      <p className="text-foreground mb-4 leading-relaxed">{children}</p>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="text-foreground mb-4 space-y-2">{children}</ul>
-                    ),
-                    li: ({ children }) => (
-                      <li className="text-foreground">{children}</li>
-                    ),
-                    strong: ({ children }) => (
-                      <strong className="text-foreground font-semibold">{children}</strong>
-                    ),
-                    code: ({ children }) => (
-                      <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono">
-                        {children}
-                      </code>
-                    ),
-                    blockquote: ({ children }) => (
-                      <blockquote className="border-l-4 border-primary-solid pl-4 italic text-muted-foreground my-4">
-                        {children}
-                      </blockquote>
-                    ),
-                  }}>{message.content}</ReactMarkdown>
+                  <MarkdownFormatter text={message.content} />
 
                   {/* Sources */}
                   {message.sources && message.sources.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-surface-border/50">
-                      <p className="text-xs text-muted-foreground mb-1">Sources:</p>
-                      <div className="flex flex-col gap-2">
-                        {message.sources.map((source, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-muted/10 rounded text-xs text-muted-foreground"
-                          >
-                            <FileText className="w-3 h-3" />
-                            {source}
-                          </span>
-                        ))}
-                        {/* {message.sources.map((source, index) => (
-                          <div
-                            key={index}
-                            className="inline-flex flex-col bg-muted/10 rounded-lg p-2 text-xs text-muted-foreground"
-                          >
-                            <div className="flex items-center gap-1">
-                              <FileText className="w-3 h-3 flex-shrink-0" />
-                              <span className="font-medium">Source {index + 1}</span>
+                      <p className="text-xs text-muted-foreground mb-1 font-medium">Citations:</p>
+                      <div className="flex flex-col gap-3">
+                        {message.sources.map((citation, index) => {
+                          const fileName = citation.doc_name?.split(/[\\/]/).pop() ?? "Unknown file";
+                          const isExpanded = expandedSources[index];
+                          const chunk = citation.chunk_text?.trim() || "";
+                          const shortChunk = chunk.slice(0, 120) + (chunk.length > 120 ? "..." : "");
+
+                          return (
+                            <div
+                              key={`${fileName}_${index}`}
+                              className="p-2 bg-muted/10 rounded-lg border border-surface-border/30 text-xs text-muted-foreground"
+                            >
+                              {/* File Name */}
+                              <div className="flex items-center gap-1 text-blue-600 mb-1 font-medium">
+                                <FileText className="w-3 h-3" />
+                                <span>{fileName}</span>
+                              </div>
+
+                              {/* Chunk Snippet */}
+                              <div className="flex items-start gap-1 mt-1">
+                                <FileDownIcon className="w-3 h-3 text-foreground/60 mt-0.5" />
+                                <div className="whitespace-pre-wrap text-foreground/80">
+                                  <MarkdownFormatter text={isExpanded ? chunk : shortChunk} />
+                                </div>
+                              </div>
+
+                              {/* Toggle */}
+                              {chunk.length > 120 && (
+                                <button
+                                  onClick={() => toggleExpand(index)}
+                                  className="text-blue-500 hover:underline text-xs mt-1 self-start"
+                                >
+                                  {isExpanded ? "Show less" : "Show more"}
+                                </button>
+                              )}
                             </div>
-                            <p className="mt-1 whitespace-pre-wrap text-foreground/80">
-                              {expandedSources[index]
-                                ? source
-                                : source.slice(0, 100) + (source.length > 100 ? "..." : "")}
-                            </p>
-                            {source.length > 100 && (
-                              <button
-                                onClick={() => toggleExpand(index)}
-                                className="text-blue-500 hover:underline text-xs mt-1 self-start"
-                              >
-                                {expandedSources[index] ? "Show less" : "Show more"}
-                              </button>
-                            )}
-                          </div>
-                        ))} */}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

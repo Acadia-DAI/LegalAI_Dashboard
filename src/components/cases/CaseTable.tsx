@@ -2,6 +2,7 @@ import type { Case } from "@/types/api-models"
 import { Button } from "../modern/Button"
 import { Card } from "../modern/Card"
 import { CaseTableRow } from "./CaseTableRow"
+import { Loader2 } from "lucide-react"
 
 interface CaseTableProps {
   cases: Case[]
@@ -15,6 +16,15 @@ interface CaseTableProps {
 export function CaseTable({ cases, currentPage, setCurrentPage, pageSize, onOpenCase, loading }: CaseTableProps) {
   const totalPages = Math.ceil(cases.length / pageSize)
   const paginatedCases = cases.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+
+    if (loading) {
+    return (
+      <Card className="p-12 text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-solid mx-auto" />
+        <p className="mt-2 text-muted-foreground">Loading cases...</p>
+      </Card>
+    )
+  }
 
   return (
     <Card className="overflow-hidden">

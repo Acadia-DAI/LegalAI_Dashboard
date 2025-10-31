@@ -31,7 +31,7 @@ export function CasesDashboard({ cases, loading, onOpenCase, onNewCase }: CasesD
   })
 
   return (
-    <div className="container mx-auto px-6 py-8 space-y-8 max-w-7xl">
+    <div className="container mx-auto px-6 py-8 space-y-8 max-w-8xl">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

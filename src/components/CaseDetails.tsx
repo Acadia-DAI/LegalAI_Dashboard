@@ -213,7 +213,7 @@ export function CaseDetails({ case: caseData, onBack, onViewDocument, onCaseUpda
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
+      <div className="container mx-auto px-6 py-8 max-w-8xl">
         {activeTab === 'overview' && (
           <div className="space-y-6">
             <Card className="p-6">

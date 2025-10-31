@@ -41,7 +41,7 @@ export function Sidebar({ user, onLogout, onNavigateToDashboard, currentView = '
   return (
     <motion.div
       className="min-h-screen glass border-r border-glass-border flex flex-col relative z-10"
-      animate={{ width: isCollapsed ? 80 : 280 }}
+      animate={{ width: isCollapsed ? 80 : 200 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       {/* Header */}
@@ -160,7 +160,7 @@ export function Sidebar({ user, onLogout, onNavigateToDashboard, currentView = '
           >
             <Bell className="h-4 w-4" />
             <div className="absolute top-2 right-2">
-              <Badge variant="error" size="sm">3</Badge>
+              {/* <Badge variant="error" size="sm">3</Badge> */}
             </div>
             <AnimatePresence>
               {!isCollapsed && (

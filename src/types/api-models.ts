@@ -32,12 +32,17 @@ export interface CaseDocumentSummaryOut extends Document {
 }
 
 
+export interface Citation {
+  doc_name : string
+  chunk_text: string
+}
+
 export interface Message {
   id: string
   type: 'user' | 'ai'
   content: string
   timestamp: string
-  sources?: string[]
+  sources?: Citation[]
 }
 
 export interface DocumentSummary {

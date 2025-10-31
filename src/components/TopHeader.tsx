@@ -16,9 +16,9 @@ export function TopHeader() {
             <Button variant="ghost" size="icon">
               <Bell className="h-4 w-4" />
             </Button>
-            <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1 text-xs bg-error text-white rounded-full">
+            {/* <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1 text-xs bg-error text-white rounded-full">
               3
-            </Badge>
+            </Badge> */}
           </div>
         </div>
       </div>
