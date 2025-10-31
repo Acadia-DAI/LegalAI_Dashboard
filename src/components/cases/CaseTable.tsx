@@ -17,7 +17,7 @@ export function CaseTable({ cases, currentPage, setCurrentPage, pageSize, onOpen
   const totalPages = Math.ceil(cases.length / pageSize)
   const paginatedCases = cases.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
-    if (loading) {
+  if (loading) {
     return (
       <Card className="p-12 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary-solid mx-auto" />
